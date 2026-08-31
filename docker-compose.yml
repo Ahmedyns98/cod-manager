@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: cod-db
+    environment:
+      POSTGRES_DB: coddb
+      POSTGRES_USER: cod
+      POSTGRES_PASSWORD: cod
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cod -d coddb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: cod-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/coddb
+      SPRING_DATASOURCE_USERNAME: cod
+      SPRING_DATASOURCE_PASSWORD: cod
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
