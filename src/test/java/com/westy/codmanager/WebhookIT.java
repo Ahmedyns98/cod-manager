@@ -2,6 +2,7 @@ package com.westy.codmanager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.westy.codmanager.auth.repository.UserRepository;
 import com.westy.codmanager.catalog.repository.ProductRepository;
 import com.westy.codmanager.customer.repository.CustomerRepository;
@@ -21,7 +22,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -135,7 +135,7 @@ class WebhookIT extends AbstractIntegrationTest {
         move("CONFIRMED");
         move("PACKED");
 
-        carrier.stubFor(post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":true,"tracking":"yal-D-123","label":"https://label/x.pdf"}}"""
                 .formatted(orderNumber))));
 

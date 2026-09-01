@@ -2,6 +2,7 @@ package com.westy.codmanager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.westy.codmanager.auth.repository.UserRepository;
 import com.westy.codmanager.catalog.repository.ProductRepository;
 import com.westy.codmanager.customer.repository.CustomerRepository;
@@ -19,10 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.delete;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -147,7 +145,7 @@ class ShippingIT extends AbstractIntegrationTest {
     }
 
     private void stubCreateSuccess(String orderNumber) {
-        carrier.stubFor(post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":true,"tracking":"yal-D-123","label":"https://label/x.pdf"}}"""
                 .formatted(orderNumber))));
     }
@@ -210,7 +208,7 @@ class ShippingIT extends AbstractIntegrationTest {
     void aServerErrorIsRetriedThreeTimes() throws Exception {
         String orderId = packedOrder();
 
-        carrier.stubFor(post(urlPathEqualTo("/parcels"))
+        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels"))
                 .willReturn(aResponse().withStatus(503)));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
@@ -224,7 +222,7 @@ class ShippingIT extends AbstractIntegrationTest {
         String orderId = packedOrder();
         String orderNumber = orderNumberOf(orderId);
 
-        carrier.stubFor(post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":false,"message":"commune inconnue"}}""".formatted(orderNumber))));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
@@ -241,7 +239,7 @@ class ShippingIT extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
                 .andExpect(status().isCreated());
 
-        carrier.stubFor(get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
+        carrier.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
                 {"data":[{"last_status":"Sorti en livraison","tracking":"yal-D-123"}]}""")));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment/sync")
@@ -261,7 +259,7 @@ class ShippingIT extends AbstractIntegrationTest {
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token));
 
-        carrier.stubFor(get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
+        carrier.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
                 {"data":[{"last_status":"Statut tout neuf"}]}""")));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment/sync")
@@ -280,7 +278,7 @@ class ShippingIT extends AbstractIntegrationTest {
         String orderId = packedOrder();
         String orderNumber = orderNumberOf(orderId);
 
-        carrier.stubFor(post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":false,"message":"Ce colis existe déjà","tracking":"yal-D-999"}}"""
                 .formatted(orderNumber))));
 
