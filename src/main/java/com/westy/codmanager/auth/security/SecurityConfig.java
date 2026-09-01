@@ -21,6 +21,9 @@ public class SecurityConfig {
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/actuator/health",
+            // Public by necessity: carriers hold no token, only a shared secret.
+            // WebhookController verifies an HMAC signature on the raw body.
+            "/api/v1/webhooks/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**"

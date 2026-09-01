@@ -51,6 +51,24 @@ app:
     secret: ${APP_JWT_SECRET:change-me-in-production-at-least-32-chars-long}
     ttl: ${APP_JWT_TTL:PT12H}
 
+app:
+  carriers:
+    yalidine:
+      # Point base-url at a mock server in tests; never at production from a laptop.
+      base-url: ${YALIDINE_BASE_URL:https://api.yalidine.app/v1}
+      api-id: ${YALIDINE_API_ID:missing}
+      api-token: ${YALIDINE_API_TOKEN:missing}
+      from-wilaya-name: ${YALIDINE_FROM_WILAYA:Constantine}
+      timeout: PT10S
+
+  webhooks:
+    # Share this with the carrier. Override via APP_WEBHOOKS_SECRET in production.
+    secret: ${APP_WEBHOOKS_SECRET:change-me-webhook-secret}
+
+  sync:
+    interval: ${APP_SYNC_INTERVAL:PT15M}
+    pause-millis: ${APP_SYNC_PAUSE:250}
+
 logging:
   level:
     com.westy.codmanager: DEBUG
