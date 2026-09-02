@@ -14,6 +14,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -111,6 +112,8 @@ public class YalidineClient implements CarrierClient {
                     .toBodilessEntity();
         } catch (ResourceAccessException ex) {
             throw CarrierException.transientFailure("Yalidine unreachable while cancelling", ex);
+        } catch (RestClientException ex) {
+            throw CarrierException.permanentFailure("Yalidine refused the cancellation");
         }
     }
 
@@ -168,6 +171,15 @@ public class YalidineClient implements CarrierClient {
                     .body(JsonNode.class);
         } catch (ResourceAccessException ex) {
             throw CarrierException.transientFailure("Yalidine unreachable", ex);
+        } catch (RestClientException ex) {
+            /*
+             * A reply that arrived but could not be read is the carrier's
+             * problem, not a transport failure, and sending the same request
+             * again will produce the same unreadable answer. It is translated
+             * here so no HTTP-layer exception ever escapes this class.
+             */
+            throw CarrierException.permanentFailure(
+                    "Yalidine returned a response that could not be read: " + ex.getMessage());
         }
     }
 
@@ -182,6 +194,9 @@ public class YalidineClient implements CarrierClient {
                     .body(JsonNode.class);
         } catch (ResourceAccessException ex) {
             throw CarrierException.transientFailure("Yalidine unreachable", ex);
+        } catch (RestClientException ex) {
+            throw CarrierException.permanentFailure(
+                    "Yalidine returned a response that could not be read: " + ex.getMessage());
         }
     }
 
