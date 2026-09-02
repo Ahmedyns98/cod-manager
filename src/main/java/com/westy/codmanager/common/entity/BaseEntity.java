@@ -2,7 +2,6 @@ package com.westy.codmanager.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
@@ -23,10 +22,18 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
 
+    /*
+     * Assigned in Java rather than by @GeneratedValue.
+     *
+     * A generated id only exists once Hibernate decides to flush, so any code
+     * that reads it before then — building a response, putting the entity in a
+     * set — sees null. Generating it up front makes the object valid from the
+     * moment it is constructed, and UUIDs need no database round trip to be
+     * unique.
+     */
     @Id
-    @GeneratedValue
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
@@ -36,9 +43,15 @@ public abstract class BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /*
+     * Boxed on purpose. Spring Data decides whether an entity is new by looking
+     * at the version when one is present, so a null version means "not yet
+     * persisted" — which is what keeps save() issuing an INSERT now that the id
+     * is populated before persisting.
+     */
     @Version
     @Column(name = "version", nullable = false)
-    private long version;
+    private Long version;
 
     public UUID getId() {
         return id;
@@ -52,7 +65,7 @@ public abstract class BaseEntity {
         return updatedAt;
     }
 
-    public long getVersion() {
+    public Long getVersion() {
         return version;
     }
 

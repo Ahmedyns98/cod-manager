@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -22,9 +21,9 @@ import java.util.UUID;
 @Table(name = "webhook_event")
 public class WebhookEvent {
 
+    /* Assigned up front, for the same reason as BaseEntity. */
     @Id
-    @GeneratedValue
-    private UUID id;
+    private UUID id = UUID.randomUUID();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "carrier", nullable = false, length = 32)
