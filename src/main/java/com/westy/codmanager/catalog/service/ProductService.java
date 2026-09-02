@@ -87,7 +87,13 @@ public class ProductService {
         ProductVariant variant = product.addVariant(
                 request.size(), request.color(), sku, request.stockQty());
 
-        products.save(product);
+        /*
+         * saveAndFlush, not save. The cascade only writes the variant when the
+         * persistence context is flushed, and its generated id is assigned at
+         * that moment. Returning before the flush hands back an entity whose id
+         * is still null, which then fails when the response is serialised.
+         */
+        products.saveAndFlush(product);
 
         return variant;
     }
