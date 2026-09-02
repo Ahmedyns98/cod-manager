@@ -34,6 +34,11 @@ public class SecurityConfig {
              * the actual failure from anyone debugging it.
              */
             "/error",
+            /*
+             * The 58 wilayas and their delivery tariffs are public facts, not
+             * anyone's data. Order forms need them before a session exists.
+             */
+            "/api/v1/geo/**",
             // Public by necessity: carriers hold no token, only a shared secret.
             // WebhookController verifies an HMAC signature on the raw body.
             "/api/v1/webhooks/**",

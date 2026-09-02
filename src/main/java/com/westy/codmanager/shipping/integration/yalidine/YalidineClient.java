@@ -57,7 +57,7 @@ public class YalidineClient implements CarrierClient {
         Map<String, Object> payload = toPayload(order);
 
         JsonNode response = post("/parcels", List.of(payload));
-        JsonNode parcel = response.path(order.getOrderNumber());
+        JsonNode parcel = parcelNode(response, order.getOrderNumber());
 
         if (parcel.path("success").asBoolean(false)) {
             return new ParcelCreated(
@@ -112,6 +112,26 @@ public class YalidineClient implements CarrierClient {
         } catch (ResourceAccessException ex) {
             throw CarrierException.transientFailure("Yalidine unreachable while cancelling", ex);
         }
+    }
+
+    /*
+     * Yalidine keys its response by the reference we sent. Falling back to the
+     * single entry when that key is missing keeps one parcel per request
+     * working even if the carrier echoes the reference back in a slightly
+     * different form, which is cheaper than failing a real shipment over it.
+     */
+    private JsonNode parcelNode(JsonNode response, String orderNumber) {
+        JsonNode byReference = response.path(orderNumber);
+
+        if (!byReference.isMissingNode() && !byReference.isNull()) {
+            return byReference;
+        }
+
+        if (response.isObject() && response.size() == 1) {
+            return response.fields().next().getValue();
+        }
+
+        return response;
     }
 
     private Map<String, Object> toPayload(Order order) {
