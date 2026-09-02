@@ -1,5 +1,6 @@
 package com.westy.codmanager.common.exception;
 
+import com.westy.codmanager.shipping.integration.CarrierException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -29,6 +30,21 @@ public class GlobalExceptionHandler {
         ProblemDetail detail = problem(HttpStatus.CONFLICT, "Business rule violated",
                 ex.getMessage(), "business-rule");
         detail.setProperty("code", ex.getCode());
+        return detail;
+    }
+
+    /*
+     * A courier that is down or refuses a parcel is not this API's fault, so it
+     * answers 502 rather than 500: the request was fine, the upstream was not.
+     * Without a handler the exception escapes raw and the caller gets a stack
+     * trace instead of a status they can act on.
+     */
+    @ExceptionHandler(CarrierException.class)
+    public ProblemDetail handleCarrierFailure(CarrierException ex) {
+        ProblemDetail detail = problem(HttpStatus.BAD_GATEWAY, "Carrier request failed",
+                ex.getMessage(), "carrier");
+        detail.setProperty("retryable", ex.isRetryable());
+
         return detail;
     }
 

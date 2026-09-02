@@ -75,7 +75,14 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
 
-        registry.add("app.carriers.yalidine.base-url", CARRIER::baseUrl);
+        /*
+         * 127.0.0.1, not localhost. WireMock binds to IPv4, while localhost
+         * resolves to ::1 first on most CI runners — so the client connects to
+         * an address nothing is listening on and reports the carrier as
+         * unreachable.
+         */
+        registry.add("app.carriers.yalidine.base-url",
+                () -> "http://127.0.0.1:" + CARRIER.port());
         registry.add("app.carriers.yalidine.api-id", () -> "test-id");
         registry.add("app.carriers.yalidine.api-token", () -> "test-token");
 
