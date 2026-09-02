@@ -1,7 +1,6 @@
 package com.westy.codmanager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.westy.codmanager.auth.repository.UserRepository;
 import com.westy.codmanager.catalog.repository.ProductRepository;
@@ -15,13 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,19 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc
 class WebhookIT extends AbstractIntegrationTest {
-
-    /*
-     * Started in a static initialiser, not @BeforeAll.
-     *
-     * @DynamicPropertySource is evaluated while Spring builds the context,
-     * which happens before @BeforeAll runs. Starting the server there means the
-     * port is registered before anything can ask for it.
-     */
-    private static final WireMockServer carrier = new WireMockServer(options().dynamicPort());
-
-    static {
-        carrier.start();
-    }
 
     @Autowired
     private MockMvc mvc;
@@ -74,19 +57,8 @@ class WebhookIT extends AbstractIntegrationTest {
     private String token;
     private String orderId;
 
-    @DynamicPropertySource
-    static void properties(DynamicPropertyRegistry registry) {
-        registry.add("app.carriers.yalidine.base-url", () -> carrier.baseUrl());
-        registry.add("app.carriers.yalidine.api-id", () -> "test-id");
-        registry.add("app.carriers.yalidine.api-token", () -> "test-token");
-        // Push the scheduler well past the life of the test run.
-        registry.add("app.sync.interval", () -> "PT24H");
-    }
-
     @BeforeEach
     void setUp() throws Exception {
-        carrier.resetAll();
-
         webhookEvents.deleteAll();
         shipments.deleteAll();
         orders.deleteAll();
@@ -133,7 +105,7 @@ class WebhookIT extends AbstractIntegrationTest {
         move("CONFIRMED");
         move("PACKED");
 
-        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":true,"tracking":"yal-D-123","label":"https://label/x.pdf"}}"""
                 .formatted(orderNumber))));
 

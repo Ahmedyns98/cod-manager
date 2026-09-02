@@ -1,7 +1,6 @@
 package com.westy.codmanager;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.westy.codmanager.auth.repository.UserRepository;
 import com.westy.codmanager.catalog.repository.ProductRepository;
@@ -13,15 +12,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,19 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @AutoConfigureMockMvc
 class ShippingIT extends AbstractIntegrationTest {
-
-    /*
-     * Started in a static initialiser, not @BeforeAll.
-     *
-     * @DynamicPropertySource is evaluated while Spring builds the context,
-     * which happens before @BeforeAll runs. Starting the server there means the
-     * port is registered before anything can ask for it.
-     */
-    private static final WireMockServer carrier = new WireMockServer(options().dynamicPort());
-
-    static {
-        carrier.start();
-    }
 
     @Autowired
     private MockMvc mvc;
@@ -72,17 +55,8 @@ class ShippingIT extends AbstractIntegrationTest {
     private String token;
     private String variantId;
 
-    @DynamicPropertySource
-    static void carrierProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.carriers.yalidine.base-url", () -> carrier.baseUrl());
-        registry.add("app.carriers.yalidine.api-id", () -> "test-id");
-        registry.add("app.carriers.yalidine.api-token", () -> "test-token");
-    }
-
     @BeforeEach
     void setUp() throws Exception {
-        carrier.resetAll();
-
         shipments.deleteAll();
         orders.deleteAll();
         customers.deleteAll();
@@ -143,7 +117,7 @@ class ShippingIT extends AbstractIntegrationTest {
     }
 
     private void stubCreateSuccess(String orderNumber) {
-        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":true,"tracking":"yal-D-123","label":"https://label/x.pdf"}}"""
                 .formatted(orderNumber))));
     }
@@ -199,20 +173,20 @@ class ShippingIT extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
                 .andExpect(status().isConflict());
 
-        carrier.verify(1, postRequestedFor(urlPathEqualTo("/parcels")));
+        CARRIER.verify(1, postRequestedFor(urlPathEqualTo("/parcels")));
     }
 
     @Test
     void aServerErrorIsRetriedThreeTimes() throws Exception {
         String orderId = packedOrder();
 
-        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels"))
+        CARRIER.stubFor(WireMock.post(urlPathEqualTo("/parcels"))
                 .willReturn(aResponse().withStatus(503)));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
                 .andExpect(status().is5xxServerError());
 
-        carrier.verify(3, postRequestedFor(urlPathEqualTo("/parcels")));
+        CARRIER.verify(3, postRequestedFor(urlPathEqualTo("/parcels")));
     }
 
     @Test
@@ -220,13 +194,13 @@ class ShippingIT extends AbstractIntegrationTest {
         String orderId = packedOrder();
         String orderNumber = orderNumberOf(orderId);
 
-        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":false,"message":"commune inconnue"}}""".formatted(orderNumber))));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
                 .andExpect(status().is5xxServerError());
 
-        carrier.verify(1, postRequestedFor(urlPathEqualTo("/parcels")));
+        CARRIER.verify(1, postRequestedFor(urlPathEqualTo("/parcels")));
     }
 
     @Test
@@ -237,7 +211,7 @@ class ShippingIT extends AbstractIntegrationTest {
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token))
                 .andExpect(status().isCreated());
 
-        carrier.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
                 {"data":[{"last_status":"Sorti en livraison","tracking":"yal-D-123"}]}""")));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment/sync")
@@ -257,7 +231,7 @@ class ShippingIT extends AbstractIntegrationTest {
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment").header("Authorization", token));
 
-        carrier.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.get(urlPathEqualTo("/parcels/yal-D-123")).willReturn(okJson("""
                 {"data":[{"last_status":"Statut tout neuf"}]}""")));
 
         mvc.perform(post("/api/v1/orders/" + orderId + "/shipment/sync")
@@ -276,7 +250,7 @@ class ShippingIT extends AbstractIntegrationTest {
         String orderId = packedOrder();
         String orderNumber = orderNumberOf(orderId);
 
-        carrier.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
+        CARRIER.stubFor(WireMock.post(urlPathEqualTo("/parcels")).willReturn(okJson("""
                 {"%s":{"success":false,"message":"Ce colis existe déjà","tracking":"yal-D-999"}}"""
                 .formatted(orderNumber))));
 

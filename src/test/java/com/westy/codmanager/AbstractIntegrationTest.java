@@ -1,5 +1,6 @@
 package com.westy.codmanager;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,8 +26,22 @@ public abstract class AbstractIntegrationTest {
                     .withPassword("test")
                     .withReuse(true);
 
+    /*
+     * One carrier stub for the whole suite, deliberately.
+     *
+     * Spring caches the application context and reuses it across every test
+     * class with the same configuration, so a per-class WireMock server would
+     * leave the base URL pinned to whichever class happened to load first while
+     * the others talked to a stranger. A single shared server, reset before
+     * each test, removes the ordering problem entirely.
+     */
+    protected static final WireMockServer CARRIER =
+            new WireMockServer(com.github.tomakehurst.wiremock.core.WireMockConfiguration
+                    .options().dynamicPort());
+
     static {
         POSTGRES.start();
+        CARRIER.start();
     }
 
     /*
@@ -43,6 +58,8 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void resetTransactionalTables() {
+        CARRIER.resetAll();
+
         jdbcTemplate.execute("""
                 TRUNCATE TABLE
                     remittance_line, remittance,
@@ -53,9 +70,16 @@ public abstract class AbstractIntegrationTest {
     }
 
     @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
+    static void testProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+
+        registry.add("app.carriers.yalidine.base-url", CARRIER::baseUrl);
+        registry.add("app.carriers.yalidine.api-id", () -> "test-id");
+        registry.add("app.carriers.yalidine.api-token", () -> "test-token");
+
+        /* Push the poller past the life of the run so it never interferes. */
+        registry.add("app.sync.interval", () -> "PT24H");
     }
 }
