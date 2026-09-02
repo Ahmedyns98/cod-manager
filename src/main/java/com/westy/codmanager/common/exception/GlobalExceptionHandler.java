@@ -1,5 +1,6 @@
 package com.westy.codmanager.common.exception;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -40,6 +41,29 @@ public class GlobalExceptionHandler {
         ProblemDetail detail = problem(HttpStatus.BAD_REQUEST, "Validation failed",
                 "One or more fields are invalid", "validation");
         detail.setProperty("errors", fieldErrors);
+        return detail;
+    }
+
+    /*
+     * Constraints on request parameters (@Min, @Max on a @Validated controller)
+     * surface as ConstraintViolationException rather than as a binding failure.
+     * Without this the caller gets a 500 for what is plainly a bad request.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleParameterViolation(ConstraintViolationException ex) {
+        Map<String, String> violations = new LinkedHashMap<>();
+
+        ex.getConstraintViolations().forEach(violation -> {
+            String path = violation.getPropertyPath().toString();
+            String field = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+
+            violations.putIfAbsent(field, violation.getMessage());
+        });
+
+        ProblemDetail detail = problem(HttpStatus.BAD_REQUEST, "Validation failed",
+                "One or more parameters are invalid", "validation");
+        detail.setProperty("errors", violations);
+
         return detail;
     }
 

@@ -8,8 +8,6 @@ import com.westy.codmanager.catalog.repository.ProductRepository;
 import com.westy.codmanager.customer.repository.CustomerRepository;
 import com.westy.codmanager.order.repository.OrderRepository;
 import com.westy.codmanager.shipping.repository.ShipmentRepository;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +35,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class ShippingIT extends AbstractIntegrationTest {
 
-    private static WireMockServer carrier;
+    /*
+     * Started in a static initialiser, not @BeforeAll.
+     *
+     * @DynamicPropertySource is evaluated while Spring builds the context,
+     * which happens before @BeforeAll runs. Starting the server there means the
+     * port is registered before anything can ask for it.
+     */
+    private static final WireMockServer carrier = new WireMockServer(options().dynamicPort());
+
+    static {
+        carrier.start();
+    }
 
     @Autowired
     private MockMvc mvc;
@@ -62,17 +71,6 @@ class ShippingIT extends AbstractIntegrationTest {
 
     private String token;
     private String variantId;
-
-    @BeforeAll
-    static void startCarrier() {
-        carrier = new WireMockServer(options().dynamicPort());
-        carrier.start();
-    }
-
-    @AfterAll
-    static void stopCarrier() {
-        carrier.stop();
-    }
 
     @DynamicPropertySource
     static void carrierProperties(DynamicPropertyRegistry registry) {
