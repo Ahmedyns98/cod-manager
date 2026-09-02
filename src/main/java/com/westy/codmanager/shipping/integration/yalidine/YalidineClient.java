@@ -7,6 +7,7 @@ import com.westy.codmanager.order.domain.Order;
 import com.westy.codmanager.order.domain.OrderItem;
 import com.westy.codmanager.shipping.integration.CarrierClient;
 import com.westy.codmanager.shipping.integration.CarrierException;
+import com.westy.codmanager.shipping.integration.CarrierUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
@@ -51,9 +52,8 @@ public class YalidineClient implements CarrierClient {
     }
 
     @Override
-    @Retryable(retryFor = CarrierException.class, maxAttempts = 3,
-            backoff = @Backoff(delay = 500, multiplier = 2.0),
-            noRetryFor = {}, exceptionExpression = "#{@carrierRetryPolicy.shouldRetry(#root)}")
+    @Retryable(retryFor = CarrierUnavailableException.class, maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2.0))
     public ParcelCreated createParcel(Order order) {
         Map<String, Object> payload = toPayload(order);
 
@@ -82,9 +82,8 @@ public class YalidineClient implements CarrierClient {
     }
 
     @Override
-    @Retryable(retryFor = CarrierException.class, maxAttempts = 3,
-            backoff = @Backoff(delay = 500, multiplier = 2.0),
-            exceptionExpression = "#{@carrierRetryPolicy.shouldRetry(#root)}")
+    @Retryable(retryFor = CarrierUnavailableException.class, maxAttempts = 3,
+            backoff = @Backoff(delay = 500, multiplier = 2.0))
     public ParcelStatus fetchStatus(String trackingNumber) {
         JsonNode response = get("/parcels/" + trackingNumber);
         JsonNode parcel = response.path("data").isArray() && !response.path("data").isEmpty()
@@ -205,10 +204,10 @@ public class YalidineClient implements CarrierClient {
      * problem and will not.
      */
     private CarrierException classify(HttpStatusCode status, String operation) {
-        boolean worthRetrying = status.is5xxServerError() || status.value() == 429;
-
         String message = "Yalidine %s failed with HTTP %d".formatted(operation, status.value());
 
-        return new CarrierException(message, worthRetrying);
+        return status.is5xxServerError() || status.value() == 429
+                ? new CarrierUnavailableException(message)
+                : CarrierException.permanentFailure(message);
     }
 }

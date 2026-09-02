@@ -22,7 +22,11 @@ public class CarrierException extends RuntimeException {
     }
 
     public static CarrierException transientFailure(String message, Throwable cause) {
-        return new CarrierException(message, true, cause);
+        return new CarrierUnavailableException(message, cause);
+    }
+
+    public static CarrierException transientFailure(String message) {
+        return new CarrierUnavailableException(message);
     }
 
     public static CarrierException permanentFailure(String message) {
