@@ -28,6 +28,18 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+/**
+ * Creation and lifecycle of orders.
+ *
+ * Every status change in the system passes through transition(), which is the
+ * only place stock moves and the only place history is written. A single path
+ * is what makes the lifecycle trustworthy: there is no second way for an order
+ * to reach a state nobody expected.
+ *
+ * Orders are priced at creation from the destination wilaya and the delivery
+ * type, and those figures are stored on the order. A tariff change next month
+ * must not rewrite what a customer already agreed to pay.
+ */
 @Service
 public class OrderService {
 

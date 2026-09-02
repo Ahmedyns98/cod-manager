@@ -20,6 +20,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * The numbers a COD seller actually asks for.
+ *
+ * Return rate is measured against orders that shipped, not against every order
+ * created. Dividing by the total would let a pile of unanswered phone calls
+ * flatter a genuinely bad return problem in the south.
+ *
+ * Cash outstanding with carriers is tracked separately from settled revenue,
+ * because until a remittance arrives those are two different things.
+ */
 @Service
 public class AnalyticsService {
 

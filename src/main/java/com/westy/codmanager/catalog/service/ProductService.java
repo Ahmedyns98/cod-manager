@@ -16,6 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+/**
+ * Catalog management for one seller.
+ *
+ * Every read and write is scoped by owner id at the query level rather than
+ * checked after loading, so there is no code path where a seller can reach
+ * another seller's catalog by guessing an identifier.
+ *
+ * Product SKUs are unique per seller; variant SKUs are unique globally, because
+ * they end up printed on labels and courier manifests where the seller is not
+ * part of the identifier.
+ */
 @Service
 public class ProductService {
 

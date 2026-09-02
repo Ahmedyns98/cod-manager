@@ -8,8 +8,13 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:cod}
 
   jpa:
-    open-in-view: false
+    # Kept open so lazy associations can still be read while the response is
+    # being serialised. The purist setting is false, but then every DTO has to
+    # be assembled inside the transaction, and a single missed one fails at
+    # runtime rather than at compile time.
+    open-in-view: true
     hibernate:
+      # Flyway owns the schema. Hibernate only validates that the mapping matches.
       ddl-auto: validate
     properties:
       hibernate:
@@ -50,11 +55,14 @@ springdoc:
 
 app:
   jwt:
+    # Override in production via APP_JWT_SECRET. Must be at least 32 characters
+    # for HS256; a shorter value makes the signing key too weak and jjwt rejects it.
     secret: ${APP_JWT_SECRET:change-me-in-production-at-least-32-chars-long}
     ttl: ${APP_JWT_TTL:PT12H}
 
   carriers:
     yalidine:
+      # Point base-url at a mock server in tests; never at production from a laptop.
       base-url: ${YALIDINE_BASE_URL:https://api.yalidine.app/v1}
       api-id: ${YALIDINE_API_ID:missing}
       api-token: ${YALIDINE_API_TOKEN:missing}
@@ -62,6 +70,7 @@ app:
       timeout: PT10S
 
   webhooks:
+    # Share this with the carrier. Override via APP_WEBHOOKS_SECRET in production.
     secret: ${APP_WEBHOOKS_SECRET:change-me-webhook-secret}
 
   sync:

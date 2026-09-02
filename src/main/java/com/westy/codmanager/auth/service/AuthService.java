@@ -14,6 +14,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
+/**
+ * Registration and login for shop owners.
+ *
+ * Both endpoints return a token rather than a session, because the API is
+ * stateless and any instance must be able to serve any request.
+ *
+ * Login deliberately gives the same answer for an unknown email and a wrong
+ * password, and verifies the hash even when the account is already known to be
+ * inactive. Distinguishing the cases — in the message or in the response time —
+ * would let anyone enumerate which emails have accounts here.
+ */
 @Service
 public class AuthService {
 

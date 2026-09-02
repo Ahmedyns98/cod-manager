@@ -19,6 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Hands orders to couriers and folds their status updates back in.
+ *
+ * Two rules hold throughout. A shipment row is written before the carrier is
+ * called, so a timeout after the parcel was accepted leaves a record to
+ * reconcile instead of a silent duplicate. And the carrier is a source of
+ * information, not an authority: a status that maps to an illegal transition is
+ * recorded and ignored, never forced onto the order.
+ */
 @Service
 public class ShippingService {
 

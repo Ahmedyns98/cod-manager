@@ -12,6 +12,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Something the seller advertises. What actually ships is a ProductVariant —
+ * the size and colour that carries the stock.
+ *
+ * Prices live here rather than on the variant because Algerian apparel and POD
+ * sellers price per design, not per size. Moving them down to the variant is
+ * the change to make if that ever stops being true.
+ */
 @Entity
 @Table(name = "product")
 public class Product extends BaseEntity {

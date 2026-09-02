@@ -13,6 +13,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * The security policy for the whole API.
+ *
+ * The default is closed: anyRequest().authenticated() is the last rule, so a
+ * newly added endpoint is protected unless someone deliberately lists it as
+ * public. The reverse default is how endpoints get shipped unprotected.
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -21,6 +28,12 @@ public class SecurityConfig {
             "/api/v1/auth/register",
             "/api/v1/auth/login",
             "/actuator/health",
+            /*
+             * Spring forwards an unhandled exception to /error. Leaving that
+             * path protected turns every 500 into a confusing 401, which hides
+             * the actual failure from anyone debugging it.
+             */
+            "/error",
             // Public by necessity: carriers hold no token, only a shared secret.
             // WebhookController verifies an HMAC signature on the raw body.
             "/api/v1/webhooks/**",

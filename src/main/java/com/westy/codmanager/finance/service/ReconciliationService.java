@@ -27,6 +27,18 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Matches carrier payouts against delivered orders.
+ *
+ * This is the feature the system exists for. A delivered order is not money:
+ * the courier holds the cash for a week or more, then settles it in one lump
+ * transfer with a list of parcels attached. Sellers reconcile that list by hand
+ * in a spreadsheet, and that is where the errors live.
+ *
+ * Every row is recorded with an outcome, including the ones that do not match.
+ * A short payment or an unknown tracking number is a question for the seller,
+ * never something accepted quietly — making that gap visible is the point.
+ */
 @Service
 public class ReconciliationService {
 
