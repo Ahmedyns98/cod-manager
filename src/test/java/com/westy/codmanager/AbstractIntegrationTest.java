@@ -81,6 +81,7 @@ public abstract class AbstractIntegrationTest {
          * an address nothing is listening on and reports the carrier as
          * unreachable.
          */
+        System.out.println(">>> WIREMOCK PORT: " + CARRIER.port() + " running=" + CARRIER.isRunning());
         registry.add("app.carriers.yalidine.base-url",
                 () -> "http://127.0.0.1:" + CARRIER.port());
         registry.add("app.carriers.yalidine.api-id", () -> "test-id");
@@ -90,3 +91,4 @@ public abstract class AbstractIntegrationTest {
         registry.add("app.sync.interval", () -> "PT24H");
     }
 }
+

@@ -57,6 +57,7 @@ class ShippingIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+                CARRIER.resetAll();
         shipments.deleteAll();
         orders.deleteAll();
         customers.deleteAll();
