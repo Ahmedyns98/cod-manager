@@ -37,7 +37,17 @@ public abstract class AbstractIntegrationTest {
      */
     protected static final WireMockServer CARRIER =
             new WireMockServer(com.github.tomakehurst.wiremock.core.WireMockConfiguration
-                    .options().dynamicPort());
+                    .options()
+                    .dynamicPort()
+                    /*
+                     * HTTP/2 off. The JDK client negotiates it when offered,
+                     * and the stub's implementation then cancels the stream
+                     * mid-request — every POST comes back as RST_STREAM and
+                     * looks like the carrier is unreachable. Nothing here needs
+                     * HTTP/2; the real API is plain HTTP/1.1 anyway.
+                     */
+                    .http2PlainDisabled(true)
+                    .http2TlsDisabled(true));
 
     static {
         POSTGRES.start();
@@ -81,7 +91,6 @@ public abstract class AbstractIntegrationTest {
          * an address nothing is listening on and reports the carrier as
          * unreachable.
          */
-        System.out.println(">>> WIREMOCK PORT: " + CARRIER.port() + " running=" + CARRIER.isRunning());
         registry.add("app.carriers.yalidine.base-url",
                 () -> "http://127.0.0.1:" + CARRIER.port());
         registry.add("app.carriers.yalidine.api-id", () -> "test-id");
@@ -91,4 +100,3 @@ public abstract class AbstractIntegrationTest {
         registry.add("app.sync.interval", () -> "PT24H");
     }
 }
-

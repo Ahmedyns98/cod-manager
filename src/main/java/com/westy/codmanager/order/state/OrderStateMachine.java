@@ -39,7 +39,7 @@ public class OrderStateMachine {
         ALLOWED.put(NO_ANSWER, Set.of(PENDING, CONFIRMED, CANCELLED));
         ALLOWED.put(CONFIRMED, Set.of(PACKED, CANCELLED));
         ALLOWED.put(PACKED, Set.of(SHIPPED, CANCELLED));
-        ALLOWED.put(SHIPPED, Set.of(IN_TRANSIT, RETURNED));
+        ALLOWED.put(SHIPPED, Set.of(IN_TRANSIT, OUT_FOR_DELIVERY, RETURNED));
         ALLOWED.put(IN_TRANSIT, Set.of(OUT_FOR_DELIVERY, RETURNED));
         // A failed delivery attempt sends the parcel back into transit.
         ALLOWED.put(OUT_FOR_DELIVERY, Set.of(DELIVERED, IN_TRANSIT, RETURNED));
